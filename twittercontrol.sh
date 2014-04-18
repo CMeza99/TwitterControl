@@ -1,31 +1,11 @@
 #!/bin/bash
 #
 
-#Check for all files
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-  TARGET="$(readlink "$SOURCE")"
-  if [[ $SOURCE == /* ]]; then
-    SOURCE="$TARGET"
-  else
-    DIR="$( dirname "$SOURCE" )"
-    SOURCE="$DIR/$TARGET" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-  fi
-done
-DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-
-errmsg="not found."
-files=( tclid.sh jsonv.sh )
-for i in "${files[@]}"; do
-	echo $DIR/$i
-	[ -s "$DIR/$i" ] && (! [ -r "$DIR/$i" ] || echo "$i not found.") || echo "no"
-done
-
 #Set constants
 TWITTER_ACCOUNT=_dotroot
 
 throw () {
-  echo "$*" >&2
+  echo -e "$*" >&2
   exit 1
 }
 
@@ -81,7 +61,27 @@ parse_options() {
 			;;
 		esac
 	done
-echo "opt = $opt"
 }
+
+# Determine script location
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  TARGET="$(readlink "$SOURCE")"
+  if [[ $SOURCE == /* ]]; then
+    SOURCE="$TARGET"
+  else
+    DIR="$( dirname "$SOURCE" )"
+    SOURCE="$DIR/$TARGET" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  fi
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+# Check for all necessary files
+files=( OAuth.sh TwitterOAuth.sh tcli.sh jsonv.sh json.awk )
+errmsg=
+for i in "${files[@]}"; do
+	[ -s "$DIR/$i" ] && ([ -r "$DIR/$i" ] || errmsg="$errmsg Can not read $i") || errmsg="$errmsg $i not found."
+done
+[ -n "$errmsg" ] && throw $errmsg
 
 parse_options "$@"
