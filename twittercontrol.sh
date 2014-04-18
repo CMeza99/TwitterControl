@@ -5,8 +5,9 @@
 TWITTER_ACCOUNT=_dotroot
 
 throw () {
-  echo -e "$*" >&2
-  exit 1
+	echo -e "$*" >&2
+	echo
+	exit 1
 }
 
 usage() {
@@ -36,7 +37,9 @@ usage() {
 }
 
 parse_options() {
+	local no_param=1
 	while getopts :gla:e:d:h: opt; do
+		no_param=
 		case $opt in
 		g)
 			echo "get"
@@ -61,8 +64,10 @@ parse_options() {
 			;;
 		esac
 	done
+	[ -n no_param ] && usage $1
 }
 
+###### MAIN ######
 # Determine script location
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -82,6 +87,6 @@ errmsg=
 for i in "${files[@]}"; do
 	[ -s "$DIR/$i" ] && ([ -r "$DIR/$i" ] || errmsg="$errmsg Can not read $i") || errmsg="$errmsg $i not found."
 done
-[ -n "$errmsg" ] && throw $errmsg
+[ -n "$errmsg" ] && throw $errmsg || files=
 
 parse_options "$@"
