@@ -19,6 +19,7 @@ config () {
 	DEVICE=Zombie1
 	TWITTER_FEED=_dotroot
 	TWITTER_POST=$TWITTER_FEED
+	CMD_FILE=$DIR/twitter_cmd.rc
 }
 
 throw () {
@@ -117,5 +118,9 @@ fi
 # Check if tokens exsist, if not runs tcli.sh to authenticate oauth.
 [ -n "$oauth_token" ] && [ -n "$oauth_token_secret" ] || $DIR/tcli.sh
 unset -v files
+
+config
+
+[ -r "$CMD_FILE" ] || touch $CMD_FILE || throw "Can not access $CMD_FILE"
 
 parse_options "$@"
