@@ -87,6 +87,8 @@ errmsg=
 for i in "${files[@]}"; do
 	[ -s "$DIR/$i" ] && ([ -r "$DIR/$i" ] || errmsg="$errmsg Can not read $i") || errmsg="$errmsg $i not found."
 done
-[ -n "$errmsg" ] && throw $errmsg || files=
+[ -n "$errmsg" ] && throw $errmsg || files=.tcli.rc && i=
+[ -s "$DIR/$files" ] && ([ -r "$DIR/$files" ] || errmsg="$errmsg Can not read $files") || errmsg="$errmsg $files not found."
+$DIR/tcli.sh; throw $errmsg
 
 parse_options "$@"
