@@ -35,7 +35,7 @@ usage() {
 			throw $errmsg
 			;;
 		-h | --help)
-			echo "Usage: $0"
+			echo "Usage: $0 -[larxh] (command)"
 			echo
 			exit 0
 			;;
@@ -54,26 +54,31 @@ usage() {
 	esac
 }
 
+cmd_add () {
+	echo "add $@"
+}
+
 parse_options() {
-	local no_param=1
-	while getopts :gla:e:d:h: opt; do
-		no_param=
+	no_param=1
+	while getopts :la:r:t:xh: opt; do
+		unset -v no_param
 		case $opt in
-		g)
-			echo "get"
-			;;
 		l)
-			echo "list"
+			cat $CMD_FILE | less; exit 0
 			;;
 		a)
-			echo "add $OPTARG"
+			cmd_add $OPTARG
 			;;
-		e)
-			echo "enable $OPTARG"
+		r)
+			echo "remove command $OPTARG"
 			;;
-		d)
-			echo "disable $OPTARG"
+		t)
+			echo "toggle $OPTARG"
 			;;
+		x)
+			echo "execute"
+			;;
+
 		h | ?)
 			usage $1;
 			;;
@@ -82,7 +87,7 @@ parse_options() {
 			;;
 		esac
 	done
-	[ -n no_param ] && usage $1
+	[ -n "$no_param" ] && usage $1
 }
 
 ###### MAIN ######
@@ -121,6 +126,6 @@ unset -v files
 
 config
 
-[ -r "$CMD_FILE" ] || touch $CMD_FILE || throw "Can not access $CMD_FILE"
+[ -r "$CMD_FILE" ] || echo -e "Enabled\tSHA1\t\t\t\t\tCommand" > $CMD_FILE || throw "Can not access $CMD_FILE"
 
 parse_options "$@"
