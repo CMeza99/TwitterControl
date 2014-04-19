@@ -1,8 +1,25 @@
 #!/bin/bash
 #
+# ###### #
+# file: twittercontrol.sh
+# created by: Carlos Meza of digitalRoots
+# description: Communicates with a device via twitter.
+# utilizes (tools may be modify to fit the needs of twittercontrol.sh):
+#	tcli.sh, TwitterOAuth.sh, OAuth.sh
+# 		description: Communicates with Twitter
+#		website: https://github.com/livibetter/bash-oauth
+# 	jsonv.sh, json.awk
+#		description: Parses json data from Twitter to csv
+#		website: https://github.com/archan937/jsonv.sh
+# ###### #
 
-#Set constants
-TWITTER_ACCOUNT=_dotroot
+# Initialize settings
+# To Do: Load from twittercontrol.rc
+config () {
+	DEVICE=Zombie1
+	TWITTER_FEED=_dotroot
+	TWITTER_POST=$TWITTER_FEED
+}
 
 throw () {
 	echo -e "$*" >&2
@@ -76,7 +93,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
     SOURCE="$TARGET"
   else
     DIR="$( dirname "$SOURCE" )"
-    SOURCE="$DIR/$TARGET" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+    SOURCE="$DIR/$TARGET" # if $SOURCE was a relative symlink, resolve it relative to the path where the symlink
   fi
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
@@ -87,8 +104,18 @@ errmsg=
 for i in "${files[@]}"; do
 	[ -s "$DIR/$i" ] && ([ -r "$DIR/$i" ] || errmsg="$errmsg Can not read $i") || errmsg="$errmsg $i not found."
 done
-[ -n "$errmsg" ] && throw $errmsg || files=.tcli.rc && i=
+[ -n "$errmsg" ] && throw $errmsg || unset -v i
+
+files=.tcli.rc
 [ -s "$DIR/$files" ] && ([ -r "$DIR/$files" ] || errmsg="$errmsg Can not read $files") || errmsg="$errmsg $files not found."
-$DIR/tcli.sh; throw $errmsg
+if [ -z "$errmsg" ]; then
+	. $DIR/$files
+else
+	$DIR/tcli.sh
+	throw "$errmsg"
+fi
+# Check if tokens exsist, if not runs tcli.sh to authenticate oauth.
+[ -n "$oauth_token" ] && [ -n "$oauth_token_secret" ] || $DIR/tcli.sh
+unset -v files
 
 parse_options "$@"
