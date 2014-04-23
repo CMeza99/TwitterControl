@@ -54,8 +54,35 @@ usage() {
 	esac
 }
 
-cmd_add () {
-	echo "add $@"
+hash_cmd() {
+	cmd_sha1=$(printf '%s' "$1" | sha1sum | cut -f1 -d' ')
+	echo "$cmd_sha1"
+}
+find_cmd() {
+	local i=0
+	hashed_cmd=$(hash_cmd $1)
+	#while read line; do
+	#	if [ $i -gt 1 ]; then
+	#		echo "Line ${i}: ${line}\n"
+	#	fi
+	#	i=$((i+1))
+	#done < $CMD_FILE
+	awk '
+		BEGIN {
+			FS="\n"
+			RS="\t"
+			OFS=", "
+		}{
+			print $2
+		}' $CMD_FILE
+		
+
+	# if $(hash_cmd $1) is found in twitter_cmd.rc, return true
+}
+
+add_cmd () {
+	echo -e $(find_cmd $1)
+	#[ $(find_cmd) ] && echo "yes" || echo "no"
 }
 
 parse_options() {
@@ -67,7 +94,7 @@ parse_options() {
 			cat $CMD_FILE | less; exit 0
 			;;
 		a)
-			cmd_add $OPTARG
+			add_cmd $OPTARG
 			;;
 		r)
 			echo "remove command $OPTARG"
@@ -108,12 +135,12 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 files=( OAuth.sh TwitterOAuth.sh tcli.sh jsonv.sh json.awk )
 errmsg=
 for i in "${files[@]}"; do
-	[ -s "$DIR/$i" ] && ([ -r "$DIR/$i" ] || errmsg="$errmsg Can not read $i") || errmsg="$errmsg $i not found."
+	[ -s "$DIR/$i" ] && ([ -r "$DIR/$i" ] || errmsg="${errmsg}Can not read $i") || errmsg="${errmsg}$i not found."
 done
-[ -n "$errmsg" ] && throw $errmsg || unset -v i
+[ -n "$errmsg" ] && throw ${errmsg}|| unset -v i
 
 files=.tcli.rc
-[ -s "$DIR/$files" ] && ([ -r "$DIR/$files" ] || errmsg="$errmsg Can not read $files") || errmsg="$errmsg $files not found."
+[ -s "$DIR/$files" ] && ([ -r "$DIR/$files" ] || errmsg="${errmsg}Can not read $files") || errmsg="${errmsg}$files not found."
 if [ -z "$errmsg" ]; then
 	. $DIR/$files
 else
