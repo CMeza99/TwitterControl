@@ -13,6 +13,8 @@
 #		website: https://github.com/archan937/jsonv.sh
 # ###### #
 
+# TO DO: Add trap around processing command queue
+
 # Initialize settings
 # To Do: Load from twittercontrol.rc
 config () {
@@ -55,7 +57,7 @@ usage() {
 }
 
 hash_cmd() {
-	cmd_sha1=$(printf '%s' "$1" | sha1sum | cut -f1 -d' ')
+	cmd_sha1=$(printf '%s' "${DEVICE}${1}" | sha1sum | cut -f1 -d' ')
 	echo "$cmd_sha1"
 }
 find_cmd() {
@@ -67,14 +69,15 @@ find_cmd() {
 	#	fi
 	#	i=$((i+1))
 	#done < $CMD_FILE
-	awk '
+	# Search 
+	echo $(awk '
 		BEGIN {
 			FS="\n"
 			RS="\t"
 			OFS=", "
-		}{
+		}/SHA1/ {
 			print $2
-		}' $CMD_FILE
+		}' $CMD_FILE)
 		
 
 	# if $(hash_cmd $1) is found in twitter_cmd.rc, return true

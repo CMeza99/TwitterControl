@@ -28,7 +28,7 @@ T_API_VERSION="1.1"
 
 # Twitter API endpoints
 
-T_STATUSES_GET="https://api.twitter.com/1.1/statuses/user_timeline"
+T_STATUSES_GET="https://api.twitter.com/$T_API_VERSION/statuses/user_timeline"
 T_ACCOUNT_UPDATE_PROFILE_IMAGE="https://api.twitter.com/$T_API_VERSION/account/update_profile_image"
 T_STATUSES_UPDATE="https://api.twitter.com/$T_API_VERSION/statuses/update"
 T_STATUSES_HOME_TIMELINE="https://api.twitter.com/${T_API_VERSION}/statuses/home_timeline"
@@ -135,10 +135,10 @@ TO_statuses_get () {
   local params=(
     $(OAuth_param 'screen_name' "$1")
     )
-  [[ "$2" != "" ]] && params[${#params[@]}]=$(OAuth_param 'count' "$2")
+  #[[ "$2" != "" ]] && params[${#params[@]}]=$(OAuth_param 'count' "$2")
   local auth_header=$(OAuth_authorization_header 'Authorization' 'http://api.twitter.com' '' '' 'GET' "$T_STATUSES_GET.$format" ${params[@]})
 
-  #TO_ret=$(curl -s -H "$auth_header" --data-urlencode "screen_name=$1" "$T_STATUSES_GET.$format")
+  TO_ret=$(curl -s -H "$auth_header" --data-urlencode "screen_name=$1" "$T_STATUSES_GET.$format")
   TO_ret=$(curl -s -H "$auth_header" "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=twitterapi&count=2")
   TO_rval=$?
   return $TO_rval
