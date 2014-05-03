@@ -24,10 +24,49 @@ config () {
 	CMD_FILE=$DIR/twitter_cmd.rc
 }
 
+# Error Handling
+# In future all calls to function thow()
+# will sent and error type and have standardized error output with corriponding errorlevels
 throw () {
 	echo -e "$*" >&2
 	echo
 	exit 1
+}
+
+# Check depenancies and finds path of script
+preload () {
+	# Determine script location
+	SOURCE="${BASH_SOURCE[0]}"
+	while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+	  TARGET="$(readlink "$SOURCE")"
+	  if [[ $SOURCE == /* ]]; then
+		SOURCE="$TARGET"
+	  else
+		DIR="$( dirname "$SOURCE" )"
+		SOURCE="$DIR/$TARGET" # if $SOURCE was a relative symlink, resolve it relative to the path where the symlink
+	  fi
+	done
+	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+	# Check for all necessary files
+	files=( OAuth.sh TwitterOAuth.sh tcli.sh jsonv.sh json.awk )
+	errmsg=
+	for i in "${files[@]}"; do
+		[ -s "$DIR/$i" ] && ([ -r "$DIR/$i" ] || errmsg="${errmsg}Can not read $i") || errmsg="${errmsg}$i not found."
+	done
+	[ -n "$errmsg" ] && throw ${errmsg}|| unset -v i
+
+	files=.tcli.rc
+	[ -s "$DIR/$files" ] && ([ -r "$DIR/$files" ] || errmsg="${errmsg}Can not read $files") || errmsg="${errmsg}$files not found."
+	if [ -z "$errmsg" ]; then
+		. $DIR/$files
+	else
+		$DIR/tcli.sh
+		throw "$errmsg"
+	fi
+	# Check if tokens exsist, if not runs tcli.sh to authenticate oauth.
+	[ -n "$oauth_token" ] && [ -n "$oauth_token_secret" ] || $DIR/tcli.sh
+	unset -v files
 }
 
 usage() {
@@ -41,7 +80,6 @@ usage() {
 			echo
 			exit 0
 			;;
-		
 		*)
 			errmsg=
 			if ! [ $# -eq 0 ];
@@ -57,12 +95,13 @@ usage() {
 }
 
 hash_cmd() {
+	# SHA1 hash of command + device name; then cut just the hash from the sha1sum output
 	cmd_sha1=$(printf '%s' "${DEVICE}${1}" | sha1sum | cut -f1 -d' ')
 	echo "$cmd_sha1"
 }
 find_cmd() {
 	local i=0
-	hashed_cmd=$(hash_cmd $1)
+	hashed_cmd=$(hash_cmd $@)
 	#while read line; do
 	#	if [ $i -gt 1 ]; then
 	#		echo "Line ${i}: ${line}\n"
@@ -72,20 +111,24 @@ find_cmd() {
 	# Search 
 	echo $(awk '
 		BEGIN {
-			FS="\n"
-			RS="\t"
+			FS="\t"
+			RS="\n"
 			OFS=", "
-		}/SHA1/ {
+		}"/$hashed_cmd/"{
 			print $2
-		}' $CMD_FILE)
-		
+		}' "$CMD_FILE")
 
 	# if $(hash_cmd $1) is found in twitter_cmd.rc, return true
 }
 
 add_cmd () {
-	echo -e $(find_cmd $1)
+	echo -e "Find: $(find_cmd $@)"
 	#[ $(find_cmd) ] && echo "yes" || echo "no"
+
+	# Currently assuming command not yet added to file
+
+	# Add new command to file and is enabled by default
+	echo -e "1\t$(hash_cmd $@)\t$@" >> $CMD_FILE
 }
 
 parse_options() {
@@ -121,41 +164,10 @@ parse_options() {
 }
 
 ###### MAIN ######
-# Determine script location
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-  TARGET="$(readlink "$SOURCE")"
-  if [[ $SOURCE == /* ]]; then
-    SOURCE="$TARGET"
-  else
-    DIR="$( dirname "$SOURCE" )"
-    SOURCE="$DIR/$TARGET" # if $SOURCE was a relative symlink, resolve it relative to the path where the symlink
-  fi
-done
-DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-
-# Check for all necessary files
-files=( OAuth.sh TwitterOAuth.sh tcli.sh jsonv.sh json.awk )
-errmsg=
-for i in "${files[@]}"; do
-	[ -s "$DIR/$i" ] && ([ -r "$DIR/$i" ] || errmsg="${errmsg}Can not read $i") || errmsg="${errmsg}$i not found."
-done
-[ -n "$errmsg" ] && throw ${errmsg}|| unset -v i
-
-files=.tcli.rc
-[ -s "$DIR/$files" ] && ([ -r "$DIR/$files" ] || errmsg="${errmsg}Can not read $files") || errmsg="${errmsg}$files not found."
-if [ -z "$errmsg" ]; then
-	. $DIR/$files
-else
-	$DIR/tcli.sh
-	throw "$errmsg"
-fi
-# Check if tokens exsist, if not runs tcli.sh to authenticate oauth.
-[ -n "$oauth_token" ] && [ -n "$oauth_token_secret" ] || $DIR/tcli.sh
-unset -v files
-
+preload
 config
 
-[ -r "$CMD_FILE" ] || echo -e "Enabled\tSHA1\t\t\t\t\tCommand" > $CMD_FILE || throw "Can not access $CMD_FILE"
+# check if command repository exsist, if not create it.
+[ -r "$CMD_FILE" ] || echo -e "Enabled\tSHA1\t\t\t\t\t\tCommand" > $CMD_FILE || throw "Can not access $CMD_FILE"
 
 parse_options "$@"
