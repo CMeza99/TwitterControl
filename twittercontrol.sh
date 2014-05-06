@@ -87,6 +87,9 @@ usage() {
 			echo
 			echo -e "  d\tDelete command (alias for -r)"
 			echo
+			echo -e "Description:\tTakes commands via Twitter. For automatic polling"
+			echo -e "\t\tsetting a cron job is suggested."
+			echo
 			exit 0
 			;;
 		*)
@@ -103,35 +106,28 @@ usage() {
 	esac
 }
 
+# Returns hash of command salted with device name
 hash_cmd() {
 	# SHA1 hash of command + device name; then cut just the hash from the sha1sum output
-	cmd_sha1=$(printf '%s' "${DEVICE}${1}" | sha1sum | cut -f1 -d' ')
+	cmd_sha1=$(printf '%s' "${DEVICE}${@}" | sha1sum | cut -f1 -d' ')
 	echo "$cmd_sha1"
 }
+
+# Searches for command via the hash
 find_cmd() {
-	local i=0
-	hashed_cmd=$(hash_cmd $@)
-	#while read line; do
-	#	if [ $i -gt 1 ]; then
-	#		echo "Line ${i}: ${line}\n"
-	#	fi
-	#	i=$((i+1))
-	#done < $CMD_FILE
-	# Search 
-	echo $(awk '
+	awk -v hash=$@ '
 		BEGIN {
 			FS="\t"
-			RS="\n"
-			OFS=", "
-		}"/$hashed_cmd/"{
-			print $2
-		}' "$CMD_FILE")
+		} $2 ~ hash {
+			print $3
+		}' "$CMD_FILE"
 
 	# if $(hash_cmd $1) is found in twitter_cmd.rc, return true
 }
 
 add_cmd () {
-	echo -e "Find: $(find_cmd $@)"
+	echo Adding: $@
+	echo -e "Find: $(find_cmd $(hash_cmd $@))"
 	#[ $(find_cmd) ] && echo "yes" || echo "no"
 
 	# Currently assuming command not yet added to file
@@ -142,7 +138,7 @@ add_cmd () {
 
 parse_options() {
 	no_param=1
-	while getopts :la:r:t:xh: opt; do
+	while getopts :la:r:d:t:xh: opt; do
 		unset -v no_param
 		case $opt in
 		l)
@@ -151,7 +147,7 @@ parse_options() {
 		a)
 			add_cmd $OPTARG
 			;;
-		r)
+		d|r)
 			echo "remove command $OPTARG"
 			;;
 		t)
