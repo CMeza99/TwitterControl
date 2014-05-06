@@ -76,7 +76,16 @@ usage() {
 			throw $errmsg
 			;;
 		-h | --help)
-			echo "Usage: $0 -[larxh] (command)"
+			echo "Usage: $0 [-l] [-a command] [-r command] [-x] [-h]"
+			echo
+			echo "Switches:"
+			echo -e "  l\tList stored commands"
+			echo -e "  a\tAdd command"
+			echo -e "  r\tRemove command"
+			echo -e "  x\tManual parsing then execution"
+			echo -e "  h\tDisplays this help message"
+			echo
+			echo -e "  d\tDelete command (alias for -r)"
 			echo
 			exit 0
 			;;
