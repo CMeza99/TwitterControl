@@ -19,7 +19,7 @@
 # To Do: Load from twittercontrol.rc
 config () {
 	DEVICE=Zombie1
-	TWITTER_FEED=_dotroot
+	TWITTER_FEED=_dotRoot
 	TWITTER_POST=$TWITTER_FEED
 	CMD_FILE=$DIR/twitter_cmd.rc
 }
@@ -114,26 +114,50 @@ hash_cmd() {
 }
 
 # Searches for command via the hash
+# Returns command if found and enabled, 0 if disabled
 find_cmd() {
 	awk -v hash=$@ '
 		BEGIN {
 			FS="\t"
 		} $2 ~ hash {
-			print $3
+			if ($1 == "1")
+				print $3
+			else
+				print 0
 		}' "$CMD_FILE"
-
-	# if $(hash_cmd $1) is found in twitter_cmd.rc, return true
 }
 
 add_cmd () {
-	echo Adding: $@
-	echo -e "Find: $(find_cmd $(hash_cmd $@))"
-	#[ $(find_cmd) ] && echo "yes" || echo "no"
+	local hashed=$(hash_cmd $@)
+	[ "$(find_cmd $hashed)" ] && throw "Command already in command table (or possible hash collision)." || echo -e "1\t${hashed}\t$@" >> $CMD_FILE
+	echo Added: $@
+}
 
-	# Currently assuming command not yet added to file
+exe () {
+	#Pulls last tweet and pipes json data to be converted to csv and stored in file
+	#Head to deal with issue that can not pull single tweet. Unknown why.
+	$DIR/tcli.sh -c statuses_get -n $TWITTER_FEED -s 2 | $DIR/jsonv.sh id,text | head -n 1 > $DIR/tweet_new.csv
 
-	# Add new command to file and is enabled by default
-	echo -e "1\t$(hash_cmd $@)\t$@" >> $CMD_FILE
+	#Verify new tweet
+	if [ -r $DIR/tweet.csv ]; then
+		if [ "$(cut -d "," -f 1 $DIR/tweet.csv)" -lt "$(cut -d "," -f 1 $DIR/tweet_new.csv)" ]; then
+			mv -f $DIR/tweet_new.csv $DIR/tweet.csv
+		else
+			echo "No new tweets."
+			exit 0
+		fi
+	else
+		mv -f $DIR/tweet_new.csv $DIR/tweet.csv
+	fi
+
+	local tweet=$(cut -d "," -f 2 $DIR/tweet.csv)
+	local result=$(find_cmd ${tweet:1:-1})
+	if ((test -n "$result") && (test "$result" != 0 )) ; then
+		$result
+	else
+		echo "Nothing to execute."
+		exit 0
+	fi
 }
 
 parse_options() {
@@ -154,7 +178,7 @@ parse_options() {
 			echo "toggle $OPTARG"
 			;;
 		x)
-			echo "execute"
+			exe
 			;;
 
 		h | ?)

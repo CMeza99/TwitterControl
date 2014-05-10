@@ -135,11 +135,10 @@ TO_statuses_get () {
   local params=(
     $(OAuth_param 'screen_name' "$1")
     )
-  #[[ "$2" != "" ]] && params[${#params[@]}]=$(OAuth_param 'count' "$2")
+  [[ "$2" != "" ]] && params[${#params[@]}]=$(OAuth_param 'count' "$2")
   local auth_header=$(OAuth_authorization_header 'Authorization' 'http://api.twitter.com' '' '' 'GET' "$T_STATUSES_GET.$format" ${params[@]})
 
-  TO_ret=$(curl -s -H "$auth_header" --data-urlencode "screen_name=$1" "$T_STATUSES_GET.$format")
-  TO_ret=$(curl -s -H "$auth_header" "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=twitterapi&count=2")
+  TO_ret=$(curl -s -H "$auth_header" "${T_STATUSES_GET}.${format}?screen_name=${1}&count=${2}")
   TO_rval=$?
   return $TO_rval
 }
